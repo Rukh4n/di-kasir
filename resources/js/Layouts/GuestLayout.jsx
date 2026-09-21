@@ -11,16 +11,15 @@ export default function GuestLayout({ children }) {
   const [lastScrollY, setLastScrollY] = useState(0);
 
   const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/guiden", label: "Guide" },
-    { href: "/login", label: "Login" },
+    { href: "/", label: "Beranda" },
+    { href: "/login", label: "Masuk" },
   ];
 
   const linkClasses = (href) =>
-    `px-2 py-1 rounded transition-colors duration-200 ${
+    `px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-colors duration-200 ${
       url === href
-        ? "bg-gray-800 dark:bg-gray-100 text-white dark:text-gray-900 font-semibold"
-        : "hover:bg-gray-700 dark:hover:bg-gray-200 hover:text-white dark:hover:text-gray-900"
+        ? "bg-blue-600 text-white font-semibold shadow-sm shadow-blue-600/30"
+        : "text-gray-300 hover:bg-gray-800 hover:text-white"
     }`;
 
   useEffect(() => {
@@ -38,38 +37,38 @@ export default function GuestLayout({ children }) {
   }, [lastScrollY]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-100 dark:bg-gray-900">
+    <div className="flex min-h-screen flex-col bg-gray-950 text-gray-100 font-sans">
       {/* Navbar */}
       <nav
-        className={`fixed top-0 left-0 w-full bg-gray-900 text-white shadow-md transform transition-transform duration-300 z-50 ${
+        className={`fixed top-0 left-0 w-full bg-gray-900/90 border-b border-gray-800/80 shadow-lg backdrop-blur-md transform transition-transform duration-300 z-50 ${
           showNav ? "translate-y-0" : "-translate-y-full"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
             {/* Logo */}
-            <Link href="/" className="text-lg font-bold flex items-center gap-1">
+            <Link href="/" className="text-sm sm:text-base font-bold flex items-center gap-1">
               <span className="font-extrabold italic text-orange-500">di</span>
-              <span className="font-extrabold italic text-blue-800">Kasir</span>
+              <span className="font-extrabold italic text-blue-500">Kasir</span>
             </Link>
 
             {/* Desktop Menu */}
-            <div className="hidden md:flex space-x-4">
+            <div className="hidden md:flex items-center space-x-2">
               {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={linkClasses(link.href)}
-                >
+                <Link key={link.href} href={link.href} className={linkClasses(link.href)}>
                   {link.label}
                 </Link>
               ))}
             </div>
 
             {/* Mobile Button */}
-            <div className="md:hidden">
-              <button onClick={() => setIsOpen(!isOpen)}>
-                {isOpen ? <X size={24} /> : <Menu size={24} />}
+            <div className="md:hidden flex items-center">
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="p-2 text-gray-300 hover:text-white rounded-lg hover:bg-gray-800 transition"
+                aria-label="Toggle Menu"
+              >
+                {isOpen ? <X size={20} className="text-blue-400" /> : <Menu size={20} className="text-blue-400" />}
               </button>
             </div>
           </div>
@@ -77,11 +76,12 @@ export default function GuestLayout({ children }) {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className="md:hidden bg-blue-600 px-4 py-2 space-y-2">
+          <div className="md:hidden bg-gray-900 border-b border-gray-800 px-4 py-3 space-y-1.5 shadow-xl">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
+                onClick={() => setIsOpen(false)}
                 className={`${linkClasses(link.href)} block`}
               >
                 {link.label}
@@ -95,7 +95,7 @@ export default function GuestLayout({ children }) {
       <div className="h-14"></div>
 
       {/* Content */}
-      <main>{children}</main>
+      <main className="flex-1">{children}</main>
       <Footer />
     </div>
   );

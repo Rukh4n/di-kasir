@@ -1,66 +1,37 @@
 <?php
 
-namespace App\Policies;
+namespace App\Models;
 
-use App\Models\Transaction;
-use App\Models\User;
-use Illuminate\Auth\Access\Response;
+use App\Traits\BelongsToBranch;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class TransactionPolicy
+class Transaction extends Model
 {
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
-    {
-        return false;
-    }
+    use HasFactory, BelongsToBranch;
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, Transaction $transaction): bool
-    {
-        return false;
-    }
+    protected $fillable = [
+        'branch_id',
+        'user_id',
+        'invoice_number',
+        'items',
+        'item_prices',
+        'total_price',
+        'cash_received',
+        'change',
+    ];
 
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
-    {
-        return false;
-    }
+    protected $casts = [
+        'items' => 'array',
+        'item_prices' => 'array',
+        'total_price' => 'decimal:2',
+        'cash_received' => 'decimal:2',
+        'change' => 'decimal:2',
+    ];
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, Transaction $transaction): bool
+    public function user(): BelongsTo
     {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, Transaction $transaction): bool
-    {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can restore the model.
-     */
-    public function restore(User $user, Transaction $transaction): bool
-    {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
-    public function forceDelete(User $user, Transaction $transaction): bool
-    {
-        return false;
+        return $this->belongsTo(User::class);
     }
 }

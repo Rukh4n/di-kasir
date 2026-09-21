@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
 import { Link, router, usePage } from '@inertiajs/react'
-import { Edit, Trash2, X, Download, Search, ArrowLeft } from "lucide-react"
+import { Edit, Trash2, X, Download, Search, ArrowLeft, AlertCircle, CheckCircle2, PackageX } from "lucide-react"
 
-const Show = ({ category, categories, query }) => {
+const Show = ({ category, query }) => {
   const { flash, auth } = usePage().props
   const user = auth.user
 
   const [showFlash, setShowFlash] = useState(!!flash.success || !!flash.error)
   const [flashMessage, setFlashMessage] = useState(flash.success || flash.error || '')
+  const [flashType, setFlashType] = useState(flash.success ? 'success' : flash.error ? 'error' : 'warning')
   const [showModal, setShowModal] = useState(false)
   const [selectedId, setSelectedId] = useState(null)
-  const [deleteMode, setDeleteMode] = useState(false)
   const [searchQuery, setSearchQuery] = useState(query || '')
 
   useEffect(() => {
     if (flash.success || flash.error) {
       setFlashMessage(flash.success || flash.error)
+      setFlashType(flash.success ? 'success' : 'error')
       setShowFlash(true)
       const timer = setTimeout(() => setShowFlash(false), 3000)
       return () => clearTimeout(timer)
@@ -25,20 +26,19 @@ const Show = ({ category, categories, query }) => {
 
   const openDeleteModal = (id) => {
     if (user?.role !== 'admin') {
-      setFlashMessage("Kamu bukan admin utama atau pemilik toko")
+      setFlashMessage("Akses ditolak: Anda bukan admin utama atau pemilik toko.")
+      setFlashType('warning')
       setShowFlash(true)
       setTimeout(() => setShowFlash(false), 3000)
       return
     }
     setSelectedId(id)
-    setDeleteMode(true)
     setShowModal(true)
   }
 
   const closeModal = () => {
     setSelectedId(null)
     setShowModal(false)
-    setDeleteMode(false)
   }
 
   const handleDelete = () => {
@@ -49,7 +49,6 @@ const Show = ({ category, categories, query }) => {
     }
   }
 
-  const handleSearch = (e) => setSearchQuery(e.target.value)
   const submitSearch = () => {
     router.get(route('categories.show', category.id), { query: searchQuery }, { preserveState: true })
   }
@@ -61,110 +60,208 @@ const Show = ({ category, categories, query }) => {
     }
   }
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(amount)
+  }
+
   return (
     <AuthenticatedLayout>
-      <div className="min-h-screen bg-gray-900 text-gray-100 p-2 md:p-4">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
-          <h1 className="text-xl font-bold">Kategori: {category.name}</h1>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={handleSearch}
-              onKeyDown={handleKeyDown}
-              placeholder="Cari kode atau nama produk"
-              className="rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-gray-100 focus:border-indigo-500 focus:ring focus:ring-indigo-500/50 text-sm"
-            />
+      <div className="min-h-screen bg-slate-900 text-slate-100 p-4 md:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Top Bar Navigation */}
+          <div className="flex items-center justify-between">
             <button
-              onClick={submitSearch}
-              className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md flex items-center gap-1 text-xs"
+              onClick={() => window.history.back()}
+              className="inline-flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 px-3.5 py-2 rounded-lg transition-all shadow-sm"
             >
-              <Search className="w-4 h-4 p-0.5 bg-gray-700 rounded-full" /> Cari
+              <ArrowLeft className="w-4 h-4" /> Kembali
             </button>
           </div>
-        </div>
 
-        {/* Back Link */}
-        <div className="mb-4">
-          <button
-            onClick={() => window.history.back()}
-            className="flex items-center gap-1 text-sm px-3 py-1 rounded-md bg-gray-700 hover:bg-gray-600 transition"
-          >
-            <ArrowLeft className="w-4 h-4" /> Kembali
-          </button>
-        </div>
+          {/* Header & Search Bar */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-800/60 border border-slate-700/50 p-5 rounded-2xl backdrop-blur-sm shadow-xl">
+            <div>
+              <span className="text-xs font-semibold tracking-wider text-indigo-400 uppercase">Kategori Produk</span>
+              <h1 className="text-2xl font-extrabold text-white mt-0.5">{category.name}</h1>
+            </div>
 
-        {showFlash && (
-          <div className={`mb-2 px-3 py-1 rounded-md text-white text-sm transition-opacity duration-1000 ${flash.success ? 'bg-green-600' : flash.error ? 'bg-red-600' : 'bg-yellow-600'} ${showFlash ? 'opacity-100' : 'opacity-0'}`}>
-            {flashMessage}
-          </div>
-        )}
-
-        {/* Table */}
-        <div className="bg-gray-800 rounded-xl p-3 md:p-4 shadow overflow-x-auto text-sm">
-          {category.products.length === 0 ? (
-            <p className="text-gray-400">Belum ada produk di kategori ini.</p>
-          ) : (
-            <table className="w-full text-left min-w-[600px] table-auto text-xs md:text-sm">
-              <thead>
-                <tr className="bg-gray-700">
-                  <th className="px-2 py-1">Kode</th>
-                  <th className="px-2 py-1">Nama</th>
-                  <th className="px-2 py-1">Harga</th>
-                  <th className="px-2 py-1">Stok</th>
-                  <th className="px-2 py-1">Barcode</th>
-                  <th className="px-2 py-1">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {category.products.map((product) => (
-                  <tr key={product.id} className="border-b border-gray-700">
-                    <td className="px-2 py-1">{product.code}</td>
-                    <td className="px-2 py-1">{product.name}</td>
-                    <td className="px-2 py-1">{product.price}</td>
-                    <td className="px-2 py-1">{product.stock}</td>
-                    <td className="px-2 py-1 relative bg-white">
-                      {product.barcode ? (
-                        <div className="relative bg-white p-1 rounded">
-                          <img src={`/storage/${product.barcode}`} alt={product.code} className="w-24 md:w-32 h-10 md:h-12 object-contain bg-white" />
-                          <a href={`/storage/${product.barcode}`} download={product.code + '.png'} className="absolute top-1 right-1 p-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition" title="Unduh Barcode">
-                            <Download className="w-4 h-4 p-1 bg-gray-700 rounded-full" />
-                          </a>
-                        </div>
-                      ) : <span className="text-gray-500 text-sm md:text-base">Tidak ada</span>}
-                    </td>
-                    <td className="px-2 py-1 flex gap-2">
-                      <Link href={route('products.edit', product.id)}>
-                        <Edit className="w-4 h-4 md:w-5 md:h-5 p-1 bg-gray-700 rounded-full" />
-                      </Link>
-                      <button onClick={() => openDeleteModal(product.id)} className={`transition ${user?.role !== 'admin' ? "cursor-not-allowed opacity-50" : ""}`}>
-                        <Trash2 className="w-4 h-4 md:w-5 md:h-5 p-1 bg-gray-700 rounded-full" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Delete Modal */}
-        {showModal && deleteMode && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto">
-            <div className="bg-gray-800 rounded-xl p-4 w-72 md:w-80 shadow relative">
-              <button onClick={closeModal} className="absolute top-2 right-2 text-gray-400 hover:text-gray-200">
-                <X className="w-4 h-4 p-0.5 bg-gray-700 rounded-full" />
-              </button>
-              <h2 className="text-md font-bold mb-2">Konfirmasi Hapus</h2>
-              <p className="text-gray-200 mb-4 text-sm">Apakah Anda yakin ingin menghapus produk ini?</p>
-              <div className="flex justify-end gap-2">
-                <button onClick={closeModal} className="px-3 py-1 rounded-md bg-gray-600 hover:bg-gray-700 text-white font-semibold transition text-xs">Batal</button>
-                <button onClick={handleDelete} className="px-3 py-1 rounded-md bg-red-600 hover:bg-red-700 text-white font-semibold transition text-xs">Hapus</button>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="relative w-full md:w-80">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Cari kode atau nama produk..."
+                  className="w-full pl-9 pr-4 py-2 bg-slate-900/90 border border-slate-700 rounded-xl text-slate-100 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                />
               </div>
+              <button
+                onClick={submitSearch}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-indigo-600/20 shrink-0"
+              >
+                Cari
+              </button>
             </div>
           </div>
-        )}
+
+          {/* Flash Notification */}
+          {showFlash && (
+            <div
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium shadow-lg transition-all duration-300 ${
+                flashType === 'success'
+                  ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200'
+                  : flashType === 'error'
+                  ? 'bg-rose-950/80 border-rose-500/40 text-rose-200'
+                  : 'bg-amber-950/80 border-amber-500/40 text-amber-200'
+              }`}
+            >
+              {flashType === 'success' ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+              ) : (
+                <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+              )}
+              <span>{flashMessage}</span>
+            </div>
+          )}
+
+          {/* Product Data Table */}
+          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl shadow-xl overflow-hidden backdrop-blur-sm">
+            {category.products.length === 0 ? (
+              <div className="py-16 text-center space-y-3">
+                <div className="inline-flex p-3 bg-slate-800 rounded-2xl text-slate-500">
+                  <PackageX className="w-8 h-8" />
+                </div>
+                <p className="text-slate-400 text-base font-medium">Belum ada produk di kategori ini.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-slate-900/80 text-slate-400 font-semibold border-b border-slate-700/60 uppercase text-[11px] tracking-wider">
+                      <th className="px-5 py-4">Kode</th>
+                      <th className="px-5 py-4">Nama Produk</th>
+                      <th className="px-5 py-4">Harga</th>
+                      <th className="px-5 py-4">Stok</th>
+                      <th className="px-5 py-4">Barcode</th>
+                      <th className="px-5 py-4 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/40">
+                    {category.products.map((product) => (
+                      <tr key={product.id} className="hover:bg-slate-700/30 transition-colors">
+                        <td className="px-5 py-4 font-mono text-slate-300 text-xs">{product.code}</td>
+                        <td className="px-5 py-4 font-semibold text-white">{product.name}</td>
+                        <td className="px-5 py-4 font-medium text-indigo-300">{formatCurrency(product.price)}</td>
+                        <td className="px-5 py-4">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              product.stock > 10
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                : product.stock > 0
+                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                            }`}
+                          >
+                            {product.stock} pcs
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          {product.barcode ? (
+                            <div className="inline-flex items-center gap-2 bg-white p-1.5 rounded-lg border border-slate-200">
+                              <img
+                                src={`/storage/${product.barcode}`}
+                                alt={product.code}
+                                className="h-9 object-contain"
+                              />
+                              <a
+                                href={`/storage/${product.barcode}`}
+                                download={`${product.code}.png`}
+                                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
+                                title="Unduh Barcode"
+                              >
+                                <Download className="w-4 h-4" />
+                              </a>
+                            </div>
+                          ) : (
+                            <span className="text-slate-500 text-xs italic">Tidak ada barcode</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <Link
+                              href={route('products.edit', product.id)}
+                              className="p-2 text-slate-300 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                              title="Edit Produk"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Link>
+                            <button
+                              onClick={() => openDeleteModal(product.id)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                user?.role !== 'admin'
+                                  ? 'text-slate-600 cursor-not-allowed'
+                                  : 'text-slate-300 hover:text-rose-400 hover:bg-rose-500/10'
+                              }`}
+                              title="Hapus Produk"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Delete Confirmation Modal */}
+          {showModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl relative space-y-4">
+                <button
+                  onClick={closeModal}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-700/50 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-3 text-rose-400">
+                  <div className="p-2.5 bg-rose-500/10 rounded-xl">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <h2 className="text-lg font-bold text-white">Konfirmasi Hapus</h2>
+                </div>
+
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  Apakah Anda yakin ingin menghapus produk ini? Tindakan ini tidak dapat dibatalkan.
+                </p>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    onClick={closeModal}
+                    className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors text-sm"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-medium transition-all shadow-lg shadow-rose-600/20 text-sm"
+                  >
+                    Ya, Hapus
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </AuthenticatedLayout>
   )

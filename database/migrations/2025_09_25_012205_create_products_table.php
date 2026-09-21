@@ -16,9 +16,9 @@ return new class extends Migration
             $table->string('code')->unique();
             $table->string('name');
             $table->foreignId('category_id')->constrained('categories')->onDelete('cascade');
+            $table->decimal('cost_price', 15, 2)->default(0);
             $table->decimal('price', 15, 2);
-            $table->integer('stock');
-            $table->string('barcode')->nullable(); // kolom untuk menyimpan path atau data barcode
+            $table->integer('stock')->index();
             $table->timestamps();
         });
     }

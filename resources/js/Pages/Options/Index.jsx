@@ -1,139 +1,149 @@
-import React, { useState } from 'react'
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
-import { router } from '@inertiajs/react'
-import { Trash2, CheckSquare, Square } from 'lucide-react'
+import React, { useState } from 'react';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import {Head, router } from '@inertiajs/react';
+import { Trash2, Layers, Package, Store, Receipt, AlertTriangle, X, ShieldAlert, Filter } from 'lucide-react';
 
-const Index = ({ transactions }) => {
-  const [selectedTransactions, setSelectedTransactions] = useState([])
-  const [showModal, setShowModal] = useState(false)
+export default function Index() {
+  const [showModal, setShowModal] = useState(false);
+  const [selectedTarget, setSelectedTarget] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [filterMode, setFilterMode] = useState('all');
+  const [selectedPreset, setSelectedPreset] = useState('');
 
-  const toggleSelect = (id) => {
-    if (selectedTransactions.includes(id)) {
-      setSelectedTransactions(selectedTransactions.filter((tid) => tid !== id))
-    } else {
-      setSelectedTransactions([...selectedTransactions, id])
-    }
-  }
+  const menuItems = [
+    { id: 'categories', title: 'Hapus Data Kategori', description: 'Menghapus seluruh data kategori produk yang tersimpan dalam sistem.', icon: <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />, borderHover: 'hover:border-blue-500/50', bgIcon: 'bg-blue-950/40 border-blue-800/50', btnColor: 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/20' },
+    { id: 'products', title: 'Hapus Data Produk', description: 'Menghapus seluruh inventaris produk dan informasi terkait.', icon: <Package className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />, borderHover: 'hover:border-blue-500/50', bgIcon: 'bg-blue-950/40 border-blue-800/50', btnColor: 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/20' },
+    { id: 'branches', title: 'Hapus Data Cabang', description: 'Menghapus seluruh data cabang toko yang terdaftar.', icon: <Store className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />, borderHover: 'hover:border-blue-500/50', bgIcon: 'bg-blue-950/40 border-blue-800/50', btnColor: 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/20' },
+    { id: 'transactions', title: 'Hapus Data Transaksi', description: 'Menghapus seluruh riwayat dan catatan transaksi penjualan.', icon: <Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />, borderHover: 'hover:border-blue-500/50', bgIcon: 'bg-blue-950/40 border-blue-800/50', btnColor: 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/20' }
+  ];
 
-  const toggleSelectAll = () => {
-    if (selectedTransactions.length === transactions.length) {
-      setSelectedTransactions([])
-    } else {
-      setSelectedTransactions(transactions.map((t) => t.id))
-    }
-  }
+  const handleOpenModal = (item) => { setSelectedTarget(item); setStartDate(''); setEndDate(''); setFilterMode('all'); setSelectedPreset(''); setShowModal(true); };
 
-  const handleBulkDelete = () => {
-    if (selectedTransactions.length === 0) return
-    router.post(route('options.bulkDelete'), { ids: selectedTransactions })
-    setShowModal(false)
-  }
+  const handlePresetChange = (preset) => {
+    setSelectedPreset(preset);
+    const today = new Date();
+    let start = new Date(), end = new Date();
+
+    if (preset === 'today') { start = today; end = today; }
+    else if (preset === 'this_month') { start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(today.getFullYear(), today.getMonth() + 1, 0); }
+    else if (preset === 'last_month') { start = new Date(today.getFullYear(), today.getMonth() - 1, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); }
+    else if (preset === 'this_year') { start = new Date(today.getFullYear(), 0, 1); end = new Date(today.getFullYear(), 11, 31); }
+    else { setStartDate(''); setEndDate(''); return; }
+
+    const formatDate = (d) => d.toISOString().split('T')[0];
+    setStartDate(formatDate(start));
+    setEndDate(formatDate(end));
+  };
+
+  const handleConfirmDelete = () => {
+    if (!selectedTarget) return;
+    router.post(route('options.destroyAll', { type: selectedTarget.id }), { start_date: startDate, end_date: endDate }, {
+      onSuccess: () => { setShowModal(false); setSelectedTarget(null); }
+    });
+  };
 
   return (
     <AuthenticatedLayout>
-      <div className="min-h-screen bg-gray-900 text-gray-100 p-3 md:p-4 text-xs">
-        <h1 className="text-lg font-bold mb-4">Daftar Transaksi</h1>
+    <Head title="Pembersihan Data">
+      <meta name="description" content="Bersihkan semua data yang sudah tidak terpakai di sini." />
+    </Head>
+      <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 text-xs font-sans">
+        <div className="max-w-5xl mx-auto space-y-6">
+          
+          {/* Header Section */}
+          <div className="border-b border-slate-800 pb-4">
+            <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-blue-500 shrink-0" /> Pusat Pembersihan Data
+            </h1>
+            <p className="text-slate-400 text-xs mt-0.5">Pilih jenis data yang ingin dibersihkan atau dihapus secara menyeluruh dari sistem.</p>
+          </div>
 
-        {/* Bulk Delete Button & Info */}
-        <div className="flex items-center justify-between mb-3">
-          <button
-            onClick={() => setShowModal(true)}
-            disabled={selectedTransactions.length === 0}
-            className={`flex items-center gap-1 px-3 py-1 rounded-md font-medium text-xs ${
-              selectedTransactions.length === 0
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-red-600 hover:bg-red-700 text-white'
-            }`}
-          >
-            <Trash2 size={14} /> Hapus
-          </button>
-          {selectedTransactions.length > 0 && (
-            <p className="text-gray-300 text-xs">
-              Dipilih: {selectedTransactions.length}
-            </p>
-          )}
-        </div>
+          {/* Menu Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {menuItems.map((item) => (
+              <div key={item.id} className={`bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 shadow-xl transition-all duration-200 flex flex-col justify-between ${item.borderHover}`}>
+                <div>
+                  <div className="flex items-start sm:items-center gap-3 mb-3">
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border flex items-center justify-center shrink-0 ${item.bgIcon}`}>{item.icon}</div>
+                    <div>
+                      <h2 className="text-xs sm:text-sm font-bold text-white">{item.title}</h2>
+                      <p className="text-slate-400 text-[11px] mt-0.5 leading-relaxed">{item.description}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-slate-800/80 flex justify-end">
+                  <button onClick={() => handleOpenModal(item)} className={`w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-medium text-xs text-white shadow-md transition-all active:scale-95 ${item.btnColor}`}>
+                    <Trash2 size={14} /> <span>Hapus Data</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
 
-        {/* Transactions Table */}
-        <div className="bg-gray-800 rounded-xl p-3 shadow-md overflow-x-auto">
-          {transactions.length === 0 ? (
-            <p className="text-gray-400 text-xs">Belum ada data transaksi.</p>
-          ) : (
-            <table className="w-full text-left min-w-[600px] text-xs">
-              <thead>
-                <tr className="bg-gray-700 text-xs">
-                  <th className="px-2 py-1">
-                    <button onClick={toggleSelectAll}>
-                      {selectedTransactions.length === transactions.length ? (
-                        <CheckSquare size={14} className="text-indigo-500" />
-                      ) : (
-                        <Square size={14} className="text-gray-400" />
-                      )}
-                    </button>
-                  </th>
-                  <th className="px-2 py-1">Invoice</th>
-                  <th className="px-2 py-1">Items</th>
-                  <th className="px-2 py-1">Harga</th>
-                  <th className="px-2 py-1">Total</th>
-                  <th className="px-2 py-1">Tunai</th>
-                  <th className="px-2 py-1">Kembali</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((transaction) => (
-                  <tr key={transaction.id} className="border-b border-gray-700">
-                    <td className="px-2 py-1">
-                      <button onClick={() => toggleSelect(transaction.id)}>
-                        {selectedTransactions.includes(transaction.id) ? (
-                          <CheckSquare size={14} className="text-indigo-500" />
-                        ) : (
-                          <Square size={14} className="text-gray-400" />
-                        )}
-                      </button>
-                    </td>
-                    <td className="px-2 py-1">{transaction.invoice_number}</td>
-                    <td className="px-2 py-1">
-                      {transaction.items.map((item, idx) => (
-                        <div key={idx}>
-                          {item.name} (x{item.qty})
-                        </div>
-                      ))}
-                    </td>
-                    <td className="px-2 py-1">
-                      {transaction.item_prices.map((price, idx) => (
-                        <div key={idx}>{price}</div>
-                      ))}
-                    </td>
-                    <td className="px-2 py-1">{transaction.total_price}</td>
-                    <td className="px-2 py-1">{transaction.cash_received}</td>
-                    <td className="px-2 py-1">{transaction.change}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
         </div>
 
         {/* Modal Konfirmasi */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-gray-800 rounded-lg p-5 w-full max-w-sm shadow-xl text-sm">
-              <h2 className="text-base font-bold mb-3 text-white">Konfirmasi Hapus</h2>
-              <p className="text-gray-300 mb-4">
-                Yakin ingin menghapus {selectedTransactions.length} data?
+        {showModal && selectedTarget && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 w-full max-w-lg shadow-2xl relative text-xs animate-in fade-in zoom-in duration-150 my-auto">
+              <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition-colors"><X size={16} /></button>
+
+              <div className="flex items-center gap-3 mb-4 pr-6">
+                <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 shrink-0"><AlertTriangle size={20} /></div>
+                <div>
+                  <h2 className="text-xs sm:text-sm font-bold text-white">Konfirmasi Penghapusan</h2>
+                  <p className="text-slate-400 text-[11px] mt-0.5">Tindakan ini bersifat permanen.</p>
+                </div>
+              </div>
+
+              <p className="text-slate-300 mb-4 bg-slate-800/50 border border-slate-800 p-3 rounded-lg leading-relaxed">
+                Apakah Anda benar-benar yakin ingin menghapus <span className="font-semibold text-blue-400">{selectedTarget.title}</span>? Terapkan filter periodik di bawah untuk menghapus data berdasarkan rentang waktu tertentu atau kosongkan untuk menghapus semua data.
               </p>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-3 py-1 rounded-md bg-gray-600 hover:bg-gray-700 text-white text-xs"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={handleBulkDelete}
-                  className="px-3 py-1 rounded-md bg-red-600 hover:bg-red-700 text-white text-xs flex items-center gap-1"
-                >
-                  <Trash2 size={14} /> Hapus
+
+              {/* Filter Rentang Waktu Section */}
+              <div className="space-y-3 mb-4 bg-slate-950/50 border border-slate-800/80 p-3.5 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 text-slate-300 font-semibold"><Filter size={14} className="text-blue-400" /> <span>Metode Pembersihan Periodik</span></div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-3">
+                  <button type="button" onClick={() => { setFilterMode('all'); setStartDate(''); setEndDate(''); setSelectedPreset(''); }} className={`py-1.5 px-1 sm:px-2 rounded-lg font-medium border transition-all text-center truncate ${filterMode === 'all' ? 'bg-blue-600 text-white border-blue-500 shadow-sm' : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'}`}>Semua Data</button>
+                  <button type="button" onClick={() => setFilterMode('preset')} className={`py-1.5 px-1 sm:px-2 rounded-lg font-medium border transition-all text-center truncate ${filterMode === 'preset' ? 'bg-blue-600 text-white border-blue-500 shadow-sm' : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'}`}>Preset Periode</button>
+                  <button type="button" onClick={() => { setFilterMode('range'); setSelectedPreset(''); }} className={`py-1.5 px-1 sm:px-2 rounded-lg font-medium border transition-all text-center truncate ${filterMode === 'range' ? 'bg-blue-600 text-white border-blue-500 shadow-sm' : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'}`}>Kustom Rentang</button>
+                </div>
+
+                {filterMode === 'preset' && (
+                  <div className="mb-3">
+                    <label className="block text-[11px] text-slate-400 mb-1">Pilih Periode Cepat</label>
+                    <select value={selectedPreset} onChange={(e) => handlePresetChange(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-blue-500">
+                      <option value="">-- Pilih Preset Periode --</option>
+                      <option value="today">Hari Ini</option>
+                      <option value="this_month">Bulan Ini</option>
+                      <option value="last_month">Bulan Lalu</option>
+                      <option value="this_year">Tahun Ini</option>
+                    </select>
+                  </div>
+                )}
+
+                {(filterMode === 'range' || filterMode === 'preset') && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[11px] text-slate-400 mb-1">Dari Tanggal</label>
+                      <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-slate-400 mb-1">Sampai Tanggal</label>
+                      <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-blue-500" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2">
+                <button onClick={() => setShowModal(false)} className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition-all text-center">Batal</button>
+                <button onClick={handleConfirmDelete} className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium flex items-center justify-center gap-1.5 transition-all shadow-md shadow-blue-900/30">
+                  <Trash2 size={13} /> <span>Ya, Hapus Data</span>
                 </button>
               </div>
             </div>
@@ -141,7 +151,5 @@ const Index = ({ transactions }) => {
         )}
       </div>
     </AuthenticatedLayout>
-  )
+  );
 }
-
-export default Index

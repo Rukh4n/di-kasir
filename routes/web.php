@@ -1,86 +1,69 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\BranchController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+// Public Routes
 Route::get('/', function () {
     return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
+        'canLogin'       => Route::has('login'),
+        'canRegister'    => Route::has('register'),
         'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
+        'phpVersion'     => PHP_VERSION,
     ]);
 });
-Route::get('/guiden', function(){
+
+Route::get('/guiden', function () {
     return Inertia::render('Guide');
 })->name('guide');
 
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+// Authenticated Routes
+Route::middleware(['auth', 'verified'])->group(function () {
 
-Route::middleware('auth')->group(function () {
-    // Profile
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // Dashboard & Monitoring AJAX
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/monitoring', [DashboardController::class, 'getMonitoringUpdates'])->name('dashboard.monitoring');
 
-    // Categories
-    Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
-    Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
-    Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
-    Route::get('/categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
-    Route::get('/categories/{category}/edit', [CategoryController::class, 'edit'])->name('categories.edit');
-    Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
-    Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])
-        ->name('categories.destroy')
-        ->middleware('role:admin');
+    // Profile Management
+    Route::controller(ProfileController::class)->group(function () {
+        Route::get('/profile', 'edit')->name('profile.edit');
+        Route::patch('/profile', 'update')->name('profile.update');
+        Route::delete('/profile', 'destroy')->name('profile.destroy');
+    });
 
-    // Products
-    Route::get('/product-list', [ProductController::class, 'index'])->name('products.index');
+    // Custom Transaction Search
+    Route::get('/search-products', [TransactionController::class, 'searchProducts'])
+        ->name('transactions.searchProducts');
+
+    // Exports (Accessible by all authenticated users/staff)
+    Route::get('/transaction-list/export', [TransactionController::class, 'export'])->name('transactions.export');
     Route::get('/product-list/export', [ProductController::class, 'export'])->name('products.export');
-    Route::get('/product-list/create', [ProductController::class, 'create'])->name('products.create');
-    Route::post('/product-list', [ProductController::class, 'store'])->name('products.store');
-    Route::get('/product-list/{product}', [ProductController::class, 'show'])->name('products.show');
-    Route::get('/product-list/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
-    Route::put('/product-list/{product}', [ProductController::class, 'update'])->name('products.update');
-    Route::delete('/product-list/{product}', [ProductController::class, 'destroy'])
-        ->name('products.destroy')
-        ->middleware('role:admin');
 
-    // Transactions
-    Route::get('/transaction-list', [TransactionController::class, 'index'])->name('transactions.index');
-    Route::get('/transaction-list/export', [TransactionController::class, 'export'])
-        ->name('transactions.export')
-        ->middleware('role:admin');
-    Route::get('/transaction-list/create', [TransactionController::class, 'create'])->name('transactions.create');
-    Route::post('/transaction-list', [TransactionController::class, 'store'])->name('transactions.store');
-    Route::get('/transaction-list/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
-    Route::get('/transaction-list/{transaction}/edit', [TransactionController::class, 'edit'])->name('transactions.edit');
-    Route::put('/transaction-list/{transaction}', [TransactionController::class, 'update'])
-        ->name('transactions.update')
-        ->middleware('role:admin');
-    Route::delete('/transaction-list/{transaction}', [TransactionController::class, 'destroy'])
-        ->name('transactions.destroy')
-        ->middleware('role:admin');
+    // Admin Only Bulk Actions & Resources
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/options', [AdminController::class, 'option'])->name('options.index');
+        Route::post('/options/bulk-delete', [AdminController::class, 'bulkDelete'])->name('options.bulkDelete');
+        Route::post('/options/destroy-all/{type}', [AdminController::class, 'destroyAll'])->name('options.destroyAll');
+        
+        Route::resource('branches', BranchController::class)->names('branches');
+        Route::resource('users', UserController::class)->names('users');
+    });
 
-    // Search Products
-    Route::get('/search-products', [TransactionController::class, 'searchProducts'])->name('transactions.searchProducts');
-
-    // Options (Admin only)
-    Route::get('/options', [AdminController::class, 'option'])
-        ->name('options.index')
-        ->middleware('role:admin');
-    Route::post('/options/bulk-delete', [AdminController::class, 'bulkDelete'])
-        ->name('options.bulkDelete')
-        ->middleware('role:admin');
+    // Resource Routes
+    Route::resource('categories', CategoryController::class);
+    Route::resource('product-list', ProductController::class)->names('products')->parameters([
+        'product-list' => 'product:code',
+    ]);
+    Route::resource('transaction-list', TransactionController::class)->names('transactions');
 });
 
 require __DIR__.'/auth.php';

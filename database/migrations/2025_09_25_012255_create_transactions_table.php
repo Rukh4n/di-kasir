@@ -20,6 +20,7 @@ return new class extends Migration
             $table->decimal('cash_received', 15, 2)->nullable();
             $table->decimal('change', 15, 2)->nullable();
             $table->timestamps();
+            $table->index('created_at');
         });
     }
 

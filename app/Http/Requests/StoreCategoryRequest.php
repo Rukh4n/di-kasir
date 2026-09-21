@@ -11,7 +11,7 @@ class StoreCategoryRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -21,8 +21,15 @@ class StoreCategoryRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            //
+        $rules = [
+            'code' => 'required|string|max:50|unique:categories,code',
+            'name' => 'required|string|max:255',
         ];
+
+        if ($this->user()->role === 'admin') {
+            $rules['branch_id'] = 'required|exists:branches,id';
+        }
+
+        return $rules;
     }
 }

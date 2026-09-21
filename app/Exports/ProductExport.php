@@ -5,16 +5,27 @@ namespace App\Exports;
 use App\Models\Product;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithDrawings;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
-class ProductExport implements FromCollection, WithHeadings, WithDrawings
+class ProductExport implements FromCollection, WithHeadings
 {
     protected $products;
 
-    public function __construct()
+    public function __construct($branchId = null)
     {
-        $this->products = Product::with('category')->get();
+        $user = auth()->user();
+
+        $query = Product::with(['category', 'branch']);
+
+        // Logika filter berdasarkan role
+        if ($user->role === 'admin') {
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
+            }
+        } else {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        $this->products = $query->get();
     }
 
     /**
@@ -25,12 +36,13 @@ class ProductExport implements FromCollection, WithHeadings, WithDrawings
         return $this->products->map(function ($product) {
             return [
                 'ID' => $product->id,
+                'Branch' => $product->branch->name ?? '-',
                 'Code' => $product->code,
                 'Name' => $product->name,
-                'Category' => $product->category->name ?? null,
+                'Category' => $product->category->name ?? '-',
+                'Cost Price' => $product->cost_price,
                 'Price' => $product->price,
                 'Stock' => $product->stock,
-                'Barcode' => '', // Leave empty, drawing will handle the image
                 'Created At' => $product->created_at,
                 'Updated At' => $product->updated_at,
             ];
@@ -44,35 +56,15 @@ class ProductExport implements FromCollection, WithHeadings, WithDrawings
     {
         return [
             'ID',
+            'Branch',
             'Code',
             'Name',
             'Category',
+            'Cost Price',
             'Price',
             'Stock',
-            'Barcode',
             'Created At',
             'Updated At',
         ];
-    }
-
-    /**
-     * Add barcode images
-     */
-    public function drawings()
-    {
-        $drawings = [];
-        $row = 2; // Start after header row
-        foreach ($this->products as $product) {
-            if ($product->barcode && file_exists(storage_path('app/public/' . $product->barcode))) {
-                $drawing = new Drawing();
-                $drawing->setName($product->code);
-                $drawing->setPath(storage_path('app/public/' . $product->barcode));
-                $drawing->setHeight(50);
-                $drawing->setCoordinates('G' . $row); // G column for Barcode
-                $drawings[] = $drawing;
-            }
-            $row++;
-        }
-        return $drawings;
     }
 }

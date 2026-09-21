@@ -44,7 +44,9 @@ const CTASection = () => {
         >
           {/* Instagram */}
           <motion.a
-            href="#"
+            href="https://www.instagram.com/nur_rukhan/"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 px-6 py-3 rounded-full shadow-lg text-lg font-semibold transition"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -57,7 +59,9 @@ const CTASection = () => {
 
           {/* TikTok */}
           <motion.a
-            href="#"
+            href="https://www.tiktok.com/@nur_rukhan"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-3 bg-gradient-to-r from-black to-gray-700 hover:opacity-90 px-6 py-3 rounded-full shadow-lg text-lg font-semibold transition"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
